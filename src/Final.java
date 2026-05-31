@@ -16,6 +16,10 @@ public class Final {
         int satirlar = 4;
         int sutunlar = 3;
 
+        if (ogrenciListesi.size() > (satirlar * sutunlar)) {
+            satirlar = (int) Math.ceil((double) ogrenciListesi.size() / sutunlar);
+        }
+
         if (!ogrenciListesi.isEmpty()) {
             oturmaPlaniOlustur(ogrenciListesi, satirlar, sutunlar);
         } else {
@@ -31,7 +35,7 @@ public class Final {
             ilkOgrenciler.add(new Ogrenci(1L, "Samet Gencel", "Yazilim"));
             ilkOgrenciler.add(new Ogrenci(2L, "Emre Belezoğlu", "Yazilim"));
             ilkOgrenciler.add(new Ogrenci(3L, "Ahmet Faruk Ürgen", "Yazilim"));
-            ilkOgrenciler.add(new Ogrenci(4L, "Elif Yağmur", "Donanim"));
+            ilkOgrenciler.add(new Ogrenci(4L, "Emine Kırıcı", "Donanim"));
             ilkOgrenciler.add(new Ogrenci(5L, "Fatma Sever", "Donanim"));
             ilkOgrenciler.add(new Ogrenci(6L, "Selin Kara", "Siber"));
             ilkOgrenciler.add(new Ogrenci(7L, "Burak Sen", "Siber"));
@@ -56,36 +60,64 @@ public class Final {
     }
 
     public static void oturmaPlaniOlustur(List<Ogrenci> list, int satir, int sutun) {
-        Ogrenci[][] sinifMatrisi = new Ogrenci[satir][sutun];
-        List<Ogrenci> yerlesecekler = new ArrayList<>(list);
-        Collections.shuffle(yerlesecekler);
+        Ogrenci[][] sinifMatrisi = null;
+        boolean basariliDuzen = false;
+        int maxDeneme = 1000;
+        int deneme = 0;
 
-        for (int i = 0; i < satir; i++) {
-            for (int j = 0; j < sutun; j++) {
-                if (yerlesecekler.isEmpty()) break;
+        while (deneme < maxDeneme && !basariliDuzen) {
+            sinifMatrisi = new Ogrenci[satir][sutun];
+            List<Ogrenci> yerlesecekler = new ArrayList<>(list);
+            Collections.shuffle(yerlesecekler);
+            basariliDuzen = true;
 
-                boolean uygunBulundu = false;
-                for (int k = 0; k < yerlesecekler.size(); k++) {
-                    Ogrenci aday = yerlesecekler.get(k);
-                    boolean kopyaRiski = false;
+            for (int i = 0; i < satir; i++) {
+                for (int j = 0; j < sutun; j++) {
+                    if (yerlesecekler.isEmpty()) break;
 
-                    if (j > 0 && sinifMatrisi[i][j - 1] != null && sinifMatrisi[i][j - 1].getBolum().equalsIgnoreCase(aday.getBolum())) {
-                        kopyaRiski = true;
+                    boolean uygunBulundu = false;
+                    for (int k = 0; k < yerlesecekler.size(); k++) {
+                        Ogrenci aday = yerlesecekler.get(k);
+                        if (konumGuvenliMi(sinifMatrisi, i, j, aday.getBolum())) {
+                            sinifMatrisi[i][j] = aday;
+                            yerlesecekler.remove(k);
+                            uygunBulundu = true;
+                            break;
+                        }
                     }
-                    if (i > 0 && sinifMatrisi[i - 1][j] != null && sinifMatrisi[i - 1][j].getBolum().equalsIgnoreCase(aday.getBolum())) {
-                        kopyaRiski = true;
-                    }
 
-                    if (!kopyaRiski) {
-                        sinifMatrisi[i][j] = aday;
-                        yerlesecekler.remove(k);
-                        uygunBulundu = true;
+                    if (!uygunBulundu) {
+                        basariliDuzen = false;
                         break;
                     }
                 }
+                if (!basariliDuzen) break;
+            }
+            deneme++;
+        }
 
-                if (!uygunBulundu && !yerlesecekler.isEmpty()) {
-                    sinifMatrisi[i][j] = yerlesecekler.remove(0);
+        if (!basariliDuzen) {
+            sinifMatrisi = new Ogrenci[satir][sutun];
+            List<Ogrenci> yerlesecekler = new ArrayList<>(list);
+            Collections.shuffle(yerlesecekler);
+
+            for (int i = 0; i < satir; i++) {
+                for (int j = 0; j < sutun; j++) {
+                    if (yerlesecekler.isEmpty()) break;
+
+                    boolean uygunBulundu = false;
+                    for (int k = 0; k < yerlesecekler.size(); k++) {
+                        Ogrenci aday = yerlesecekler.get(k);
+                        if (konumGuvenliMi(sinifMatrisi, i, j, aday.getBolum())) {
+                            sinifMatrisi[i][j] = aday;
+                            yerlesecekler.remove(k);
+                            uygunBulundu = true;
+                            break;
+                        }
+                    }
+                    if (!uygunBulundu) {
+                        sinifMatrisi[i][j] = yerlesecekler.remove(0);
+                    }
                 }
             }
         }
@@ -104,6 +136,23 @@ public class Final {
             System.out.println();
         }
         System.out.println("=====================================================================");
+    }
+
+    private static boolean konumGuvenliMi(Ogrenci[][] matris, int r, int c, String bolum) {
+        int[] dr = {-1, 1, 0, 0, -1, -1, 1, 1};
+        int[] dc = {0, 0, -1, 1, -1, 1, -1, 1};
+
+        for (int i = 0; i < 8; i++) {
+            int nr = r + dr[i];
+            int nc = c + dc[i];
+
+            if (nr >= 0 && nr < matris.length && nc >= 0 && nc < matris[0].length) {
+                if (matris[nr][nc] != null && matris[nr][nc].getBolum().equalsIgnoreCase(bolum)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
 
