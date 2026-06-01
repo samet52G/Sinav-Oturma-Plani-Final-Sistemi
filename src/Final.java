@@ -7,18 +7,16 @@ public class Final {
     private static final String VERI_DOSYASI = "ogrenciler.dat";
 
     public static void main(String[] args) {
-        System.out.println("=== SINAV OTURMA DUZENI SISTEMI BAŞLADI ===");
+        System.out.println("=== SINAV OTURMA DUZENI SISTEMI BASLADI ===");
 
         veritabaniniHazirla();
 
         List<Ogrenci> ogrenciListesi = veritabanindanOgrencileriCek();
 
-        int satirlar = 4;
+        // Varsayılan sınıf düzeni (Öğrenci sayısına göre dinamik büyüyecek)
         int sutunlar = 3;
-
-        if (ogrenciListesi.size() > (satirlar * sutunlar)) {
-            satirlar = (int) Math.ceil((double) ogrenciListesi.size() / sutunlar);
-        }
+        int satirlar = (int) Math.ceil((double) ogrenciListesi.size() / sutunlar);
+        if (satirlar < 3) satirlar = 3; // Minimum 3 satırlık matris
 
         if (!ogrenciListesi.isEmpty()) {
             oturmaPlaniOlustur(ogrenciListesi, satirlar, sutunlar);
@@ -33,15 +31,16 @@ public class Final {
         if (!dosya.exists()) {
             List<Ogrenci> ilkOgrenciler = new ArrayList<>();
             ilkOgrenciler.add(new Ogrenci(1L, "Samet Gencel", "Yazilim"));
-            ilkOgrenciler.add(new Ogrenci(2L, "Emre Belezoğlu", "Yazilim"));
-            ilkOgrenciler.add(new Ogrenci(3L, "Ahmet Faruk Ürgen", "Yazilim"));
-            ilkOgrenciler.add(new Ogrenci(4L, "Emine Kırıcı", "Donanim"));
+            ilkOgrenciler.add(new Ogrenci(2L, "Emre Belozoglu", "Yazilim"));
+            ilkOgrenciler.add(new Ogrenci(3L, "Ahmet Faruk Urgen", "Yazilim"));
+            ilkOgrenciler.add(new Ogrenci(4L, "Emine Kirici", "Donanim"));
             ilkOgrenciler.add(new Ogrenci(5L, "Fatma Sever", "Donanim"));
             ilkOgrenciler.add(new Ogrenci(6L, "Selin Kara", "Siber"));
             ilkOgrenciler.add(new Ogrenci(7L, "Burak Sen", "Siber"));
 
             try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(dosya))) {
                 oos.writeObject(ilkOgrenciler);
+                System.out.println("[Sistem]: Ilk veriler basariyla 'dat' dosyasina yazildi.");
             } catch (IOException e) {
                 System.out.println("Hata: " + e.getMessage());
             }
@@ -62,7 +61,7 @@ public class Final {
     public static void oturmaPlaniOlustur(List<Ogrenci> list, int satir, int sutun) {
         Ogrenci[][] sinifMatrisi = null;
         boolean basariliDuzen = false;
-        int maxDeneme = 1000;
+        int maxDeneme = 2000;
         int deneme = 0;
 
         while (deneme < maxDeneme && !basariliDuzen) {
@@ -78,6 +77,7 @@ public class Final {
                     boolean uygunBulundu = false;
                     for (int k = 0; k < yerlesecekler.size(); k++) {
                         Ogrenci aday = yerlesecekler.get(k);
+
                         if (konumGuvenliMi(sinifMatrisi, i, j, aday.getBolum())) {
                             sinifMatrisi[i][j] = aday;
                             yerlesecekler.remove(k);
@@ -95,6 +95,7 @@ public class Final {
             }
             deneme++;
         }
+
 
         if (!basariliDuzen) {
             sinifMatrisi = new Ogrenci[satir][sutun];
@@ -122,27 +123,34 @@ public class Final {
             }
         }
 
-        System.out.println("\n====================== OLUŞTURULAN SINAV PLANI ======================");
+
+        System.out.println("\n================================== OLUSTURULAN SINAV PLANI ==================================");
         for (int i = 0; i < satir; i++) {
-            System.out.print((i + 1) + ". Sira -> \t");
+            System.out.printf("%d. Sira -> \t", (i + 1));
             for (int j = 0; j < sutun; j++) {
                 Ogrenci o = sinifMatrisi[i][j];
                 if (o != null) {
-                    System.out.printf("[%s (%s)]\t", o.getAdSoyad(), o.getBolum());
+                    // Sabit genişlik (-25) vererek isimlerin kaymasını engelledik
+                    System.out.printf("[%-20s (%-7s)]\t", o.getAdSoyad(), o.getBolum());
                 } else {
-                    System.out.print("[BOS KOLTUK]\t");
+                    System.out.printf("[%-20s (%-7s)]\t", "BOS KOLTUK", "---");
                 }
             }
             System.out.println();
         }
-        System.out.println("=====================================================================");
+        System.out.println("=============================================================================================");
+
+
+        istatistikleriYazdir(sinifMatrisi, list.size());
     }
 
-    private static boolean konumGuvenliMi(Ogrenci[][] matris, int r, int c, String bolum) {
-        int[] dr = {-1, 1, 0, 0, -1, -1, 1, 1};
-        int[] dc = {0, 0, -1, 1, -1, 1, -1, 1};
 
-        for (int i = 0; i < 8; i++) {
+    private static boolean konumGuvenliMi(Ogrenci[][] matris, int r, int c, String bolum) {
+
+        int[] dr = {-1, 1, 0, 0};
+        int[] dc = {0, 0, -1, 1};
+
+        for (int i = 0; i < 4; i++) {
             int nr = r + dr[i];
             int nc = c + dc[i];
 
@@ -153,6 +161,19 @@ public class Final {
             }
         }
         return true;
+    }
+
+    private static void istatistikleriYazdir(Ogrenci[][] matris, int toplamOgrenci) {
+        int toplamKoltuk = matris.length * matris[0].length;
+        int bosKoltuk = toplamKoltuk - toplamOgrenci;
+
+        System.out.println("\n=== SINAV YERLESIM ISTATISTIKLERI ===");
+        System.out.println("-> Toplam Sira/Satir Sayisi : " + matris.length);
+        System.out.println("-> Sira Basina Koltuk (Sutun): " + matris[0].length);
+        System.out.println("-> Toplam Kapasite           : " + toplamKoltuk);
+        System.out.println("-> Yerlesen Ogrenci Sayisi   : " + toplamOgrenci);
+        System.out.println("-> Kalan Bos Koltuk Sayisi   : " + bosKoltuk);
+        System.out.println("=====================================\n");
     }
 }
 
